@@ -1,146 +1,14 @@
 import { createFileRoute } from '@tanstack/react-router'
-import { useRef, useEffect, useState } from 'react'
-import {
-    Application,
-    Sprite,
-    Graphics,
-    DisplacementFilter,
-    TextureSource,
-    BlurFilter,
-    Container,
-    Assets,
-} from 'pixi.js'
-import bunnyUrl from '../assets/bunny.png'
+import { useState } from 'react'
+import { PixiCanvas, type FilterType } from '../features/pixi-demo'
 
 export const Route = createFileRoute('/pixijs')({
     component: PixiJSIssuePage,
 })
 
 function PixiJSIssuePage() {
-    const containerRef = useRef<HTMLDivElement>(null)
     const [mipmapEnabled, setMipmapEnabled] = useState(false)
-    const [filterType, setFilterType] = useState<'displacement' | 'blur'>(
-        'displacement'
-    )
-
-    useEffect(() => {
-        if (!containerRef.current) return
-
-        TextureSource.defaultOptions.autoGenerateMipmaps = mipmapEnabled
-
-        let app: Application | null = null
-        let cancelled = false
-
-        const init = async () => {
-            const newApp = new Application()
-            await newApp.init({
-                width: 800,
-                height: 600,
-                backgroundColor: 0x1099bb,
-                antialias: true,
-            })
-
-            if (cancelled) {
-                newApp.destroy(true)
-                return
-            }
-
-            app = newApp
-
-            if (!containerRef.current) return
-            containerRef.current.innerHTML = ''
-            containerRef.current.appendChild(app.canvas)
-
-            const bgGraphics = new Graphics()
-            bgGraphics.rect(100, 100, 600, 400)
-            bgGraphics.fill({ color: 0xffffff })
-
-            for (let i = 0; i < 20; i++) {
-                bgGraphics.rect(100 + i * 30, 100, 1, 400)
-                bgGraphics.fill({ color: 0xcccccc })
-            }
-            for (let i = 0; i < 14; i++) {
-                bgGraphics.rect(100, 100 + i * 30, 600, 1)
-                bgGraphics.fill({ color: 0xcccccc })
-            }
-
-            app.stage.addChild(bgGraphics)
-
-            const bunnyTexture = await Assets.load(bunnyUrl)
-
-            if (cancelled) return
-
-            const container = new Container()
-
-            for (let i = 0; i < 25; i++) {
-                const bunny = new Sprite(bunnyTexture)
-                bunny.anchor.set(0.5)
-                bunny.x = 150 + (i % 5) * 120
-                bunny.y = 150 + Math.floor(i / 5) * 80
-                bunny.scale.set(2)
-                container.addChild(bunny)
-            }
-
-            app.stage.addChild(container)
-
-            if (filterType === 'displacement') {
-                const displacementCanvas = document.createElement('canvas')
-                displacementCanvas.width = 512
-                displacementCanvas.height = 512
-                const ctx = displacementCanvas.getContext('2d')!
-
-                const gradient = ctx.createRadialGradient(
-                    256,
-                    256,
-                    0,
-                    256,
-                    256,
-                    256
-                )
-                gradient.addColorStop(0, 'rgba(255, 128, 128, 1)')
-                gradient.addColorStop(0.5, 'rgba(128, 128, 128, 1)')
-                gradient.addColorStop(1, 'rgba(128, 128, 128, 1)')
-                ctx.fillStyle = gradient
-                ctx.fillRect(0, 0, 512, 512)
-
-                const displacementTexture = await Assets.load({
-                    src: displacementCanvas.toDataURL(),
-                    loadParser: 'loadTextures',
-                })
-
-                if (cancelled) return
-
-                const displacementSprite = new Sprite(displacementTexture)
-                displacementSprite.anchor.set(0.5)
-                displacementSprite.x = 400
-                displacementSprite.y = 300
-
-                app.stage.addChild(displacementSprite)
-
-                const displacementFilter = new DisplacementFilter({
-                    sprite: displacementSprite,
-                    scale: { x: 50, y: 50 },
-                })
-
-                container.filters = [displacementFilter]
-            } else {
-                const blurFilter = new BlurFilter({
-                    strength: 8,
-                    quality: 4,
-                })
-                container.filters = [blurFilter]
-            }
-        }
-
-        init()
-
-        return () => {
-            cancelled = true
-            if (app) {
-                app.destroy(true)
-            }
-        }
-    }, [mipmapEnabled, filterType])
+    const [filterType, setFilterType] = useState<FilterType>('displacement')
 
     return (
         <div className="container">
@@ -167,7 +35,7 @@ function PixiJSIssuePage() {
                 <select
                     value={filterType}
                     onChange={(e) =>
-                        setFilterType(e.target.value as 'displacement' | 'blur')
+                        setFilterType(e.target.value as FilterType)
                     }
                     className="select"
                 >
@@ -177,7 +45,10 @@ function PixiJSIssuePage() {
             </div>
 
             <div className="canvas-container">
-                <div ref={containerRef} />
+                <PixiCanvas
+                    mipmapEnabled={mipmapEnabled}
+                    filterType={filterType}
+                />
             </div>
 
             <div className="info-box">
