@@ -17,6 +17,8 @@ export function usePixiFilter(options: UsePixiFilterOptions): void {
             if (filterResultRef.current?.cleanup) {
                 filterResultRef.current.cleanup()
             }
+
+            // eslint-disable-next-line react-hooks/immutability -- PixiJS imperative API
             appContext.container.filters = []
 
             let result: FilterResult
