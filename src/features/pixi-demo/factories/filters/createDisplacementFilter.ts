@@ -52,8 +52,17 @@ export async function createDisplacementFilter(
     return {
         filter,
         cleanup: () => {
-            app.stage.removeChild(sprite)
-            sprite.destroy()
+            if (!app.stage || sprite.destroyed) return
+
+            try {
+                app.stage.removeChild(sprite)
+            } catch {
+                // already removed
+            }
+
+            if (!sprite.destroyed) {
+                sprite.destroy()
+            }
         },
     }
 }
