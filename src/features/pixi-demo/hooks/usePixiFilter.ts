@@ -5,7 +5,7 @@ import { createBlurFilter } from '../factories/filters/createBlurFilter'
 
 export function usePixiFilter(options: UsePixiFilterOptions): void {
     const { filterType, appContext } = options
-    const filterResultRef = useRef<FilterResult | null>(null)
+    const unregisterRef = useRef<(() => void) | null>(null)
 
     useEffect(() => {
         if (!appContext) return
@@ -14,8 +14,9 @@ export function usePixiFilter(options: UsePixiFilterOptions): void {
         const { signal } = controller
 
         const applyFilter = async () => {
-            if (filterResultRef.current?.cleanup) {
-                filterResultRef.current.cleanup()
+            if (unregisterRef.current) {
+                unregisterRef.current()
+                unregisterRef.current = null
             }
 
             // eslint-disable-next-line react-hooks/immutability -- PixiJS imperative API
@@ -31,7 +32,10 @@ export function usePixiFilter(options: UsePixiFilterOptions): void {
 
             if (signal.aborted) return
 
-            filterResultRef.current = result
+            if (result.cleanup) {
+                unregisterRef.current = appContext.registerCleanup(result.cleanup)
+            }
+
             appContext.container.filters = [result.filter]
         }
 
@@ -39,8 +43,9 @@ export function usePixiFilter(options: UsePixiFilterOptions): void {
 
         return () => {
             controller.abort()
-            if (filterResultRef.current?.cleanup) {
-                filterResultRef.current.cleanup()
+            if (unregisterRef.current) {
+                unregisterRef.current()
+                unregisterRef.current = null
             }
         }
     }, [filterType, appContext])

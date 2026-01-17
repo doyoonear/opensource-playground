@@ -6,6 +6,7 @@ export type FilterType = 'displacement' | 'blur'
 export interface PixiAppContext {
     app: Application
     container: Container
+    registerCleanup: (cleanup: () => void) => () => void
 }
 
 export interface FilterResult {
